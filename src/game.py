@@ -9,9 +9,12 @@ class Game:
     def loop(self):
         clock = pygame.time.Clock()
         while self.running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                    exit()
+            events()
             pygame.display.update()
             clock.tick(config['game']['fps'])
+
+    def events():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+                exit()
