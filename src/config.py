@@ -5,6 +5,9 @@ config = {
         'width': 1000,
         'fps': 5
     },
+    "setup": {
+        "players": 1
+    },
     'colours': {
         'white': (255, 255, 255),
         'black': (0, 0, 0),

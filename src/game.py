@@ -9,13 +9,14 @@ class Game:
         self.display = display
         self.running = True
         self.font = pygame.font.Font('assets/FiraCode.ttf', 42)
+        self.players =[]
 
     def loop(self):
         shoe = deck(2)
         shoe.shuffle()
         clock = pygame.time.Clock()
         self.showcard(shoe.shoe[0])
-
+        setup(shoe)
         while self.running:
             self.events(shoe)
             pygame.display.update()
@@ -28,7 +29,14 @@ class Game:
                 exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_h:
-                    self.showcard(shoe.shoe[randint(0, shoe.numDecks*52-1)])
+                    pass
+
+    def setup(self, shoe):
+        for i in range(config["setup"]["players"]):
+            player = player(i)
+            players.append()
+            self.showcard(shoe.shoe[0])
+            shoe.shoe.pop(0).pop(1)
 
     def showcard(self, card):
         size = 12
