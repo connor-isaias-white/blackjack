@@ -1,6 +1,7 @@
 import pygame
 from src.config import config
 from src.deck import deck
+from src.player import player
 from random import randint
 
 class Game:
@@ -10,13 +11,15 @@ class Game:
         self.running = True
         self.font = pygame.font.Font('assets/FiraCode.ttf', 42)
         self.players =[]
+        self.turn = 0
 
     def loop(self):
-        shoe = deck(2)
+        shoe = deck(5)
         shoe.shuffle()
         clock = pygame.time.Clock()
-        self.showcard(shoe.shoe[0])
-        setup(shoe)
+        self.setupPlayers()
+
+        self.deal(shoe)
         while self.running:
             self.events(shoe)
             pygame.display.update()
@@ -29,19 +32,30 @@ class Game:
                 exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_h:
-                    pass
+                    self.hit(self.turn % len(self.players), shoe)
+                    self.turn +=1
 
-    def setup(self, shoe):
+    def setupPlayers(self):
         for i in range(config["setup"]["players"]):
-            player = player(i)
-            players.append()
-            self.showcard(shoe.shoe[0])
-            shoe.shoe.pop(0).pop(1)
+            Player = player(i)
+            self.players.append(Player)
 
-    def showcard(self, card):
+    def hit(self, Player,shoe):
+        self.players[Player].hand.addCard(shoe.shoe[0])
+        cardplace = self.players[Player].hand.numCards
+        self.showcard(shoe.shoe[0], (Player+1)/(len(self.players)+1)*config["game"]['width']+5.2*[-6,0,6][cardplace % 3]*2, config["game"]['height']*(0.9-(cardplace-2)*0.134))
+        shoe.shoe.pop(0)
+
+    def deal(self, shoe):
+        for i in range(len(self.players)*2):
+            self.players[i % len(self.players)].hand.addCard(shoe.shoe[0])
+            self.showcard(shoe.shoe[0], ((i % len(self.players))+1)/(len(self.players)+1)*config["game"]['width']+5.2*12*(int(i/(len(self.players)))), config["game"]['height']*(0.9-(int(i/(len(self.players))))*0.134))
+            shoe.shoe.pop(0)
+
+    def showcard(self, card, xshift, yshift):
         size = 12
-        xshift = config["game"]["width"]/2
-        yshift = config["game"]["height"]/2
+        xshift = xshift-6*size
+        yshift = yshift-6*size
         pygame.draw.polygon(self.display,config["colours"]["white"],[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
         text = self.font.render(card.uni+card.apperance+card.uni, True,config["colours"][card.colour], config["colours"]["white"])
         textRect = text.get_rect()

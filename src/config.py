@@ -1,12 +1,12 @@
 config = {
     'game': {
         'caption': 'BlackJack',
-        'height': 750,
-        'width': 1000,
-        'fps': 5
+        'height': 800,
+        'width': 1440,
+        'fps': 10
     },
     "setup": {
-        "players": 1
+        "players": 4
     },
     'colours': {
         'white': (255, 255, 255),

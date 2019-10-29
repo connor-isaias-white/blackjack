@@ -8,6 +8,7 @@ class hand:
 
     def addCard(self, card):
         self.cards.append(card)
+        self.numCards += 1
         self.total += card.value
         if card.isAce:
             self.soft = True
