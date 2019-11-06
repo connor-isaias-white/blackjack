@@ -20,13 +20,13 @@ class Game:
         self.shoe.shuffle()
         clock = pygame.time.Clock()
         self.setupPlayers()
-
         self.roundSetup()
 
         while self.running:
+            print(self.players[self.turn % len(self.players)].state)
             if self.done == len(self.players):
                 self.roundend()
-            else:
+            elif self.players[self.turn % len(self.players)].state != "playing":
                 self.turn +=1
             self.events()
             pygame.display.update()
@@ -69,18 +69,19 @@ class Game:
         if (self.players[Player].hand.total < 21):
             self.players[Player].hand.addCard(self.shoe.shoe[0])
             cardplace = self.players[Player].hand.numCards
-            if self.players[Player].hand.numaces > 0 and self.players[Player].hand.total > 21:
-                self.players[Player].hand.numaces -= 1
-                self.players[Player].hand.soft = False
-                self.players[Player].hand.total -= 10
-            else:
-                self.bust(Player)
+            if  self.players[Player].hand.total > 21:
+                if self.players[Player].hand.numaces > 0:
+                    self.players[Player].hand.numaces -= 1
+                    self.players[Player].hand.soft = False
+                    self.players[Player].hand.total -= 10
+                else:
+                    self.bust(Player)
             self.showcard(self.shoe.shoe[0], (Player+1)/(len(self.players)+1)*config["game"]['width']+5.2*[0,12,6,-6][cardplace % 4]*2, config["game"]['height']*(0.9-(int(cardplace/2))*0.134), Player)
             self.shoe.shoe.pop(0)
 
 
     def roundend(self):
-        for i in players:
+        for i in self.players:
             print(i.hand.total)
         i.hand = hand()
         self.roundSetup(self.shoe)
