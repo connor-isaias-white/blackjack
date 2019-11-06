@@ -6,3 +6,4 @@ class player:
         self.pos = pos
         self.money = 1000
         self.hand = hand()
+        self.state = "playing"
