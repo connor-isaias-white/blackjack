@@ -16,14 +16,13 @@ class Game:
         self.players =[]
 
     def loop(self):
-        self.shoe = deck(5)
+        self.shoe = deck(10)
         self.shoe.shuffle()
         clock = pygame.time.Clock()
         self.setupPlayers()
         self.roundSetup()
 
         while self.running:
-            print(self.players[self.turn % len(self.players)].state)
             if self.done == len(self.players):
                 self.roundend()
             elif self.players[self.turn % len(self.players)].state != "playing":
@@ -76,6 +75,8 @@ class Game:
                     self.players[Player].hand.total -= 10
                 else:
                     self.bust(Player)
+            elif self.players[Player].hand.total == 21:
+                stand(Player)
             self.showcard(self.shoe.shoe[0], (Player+1)/(len(self.players)+1)*config["game"]['width']+5.2*[0,12,6,-6][cardplace % 4]*2, config["game"]['height']*(0.9-(int(cardplace/2))*0.134), Player)
             self.shoe.shoe.pop(0)
 
@@ -84,7 +85,7 @@ class Game:
         for i in self.players:
             print(i.hand.total)
         i.hand = hand()
-        self.roundSetup(self.shoe)
+        self.roundSetup()
 
     def showcard(self, card, xshift, yshift, Player):
         size = 12
