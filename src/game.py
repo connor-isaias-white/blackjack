@@ -76,7 +76,7 @@ class Game:
                 else:
                     self.bust(Player)
             elif self.players[Player].hand.total == 21:
-                stand(Player)
+                self.stand(Player)
             self.showcard(self.shoe.shoe[0], (Player+1)/(len(self.players)+1)*config["game"]['width']+5.2*[0,12,6,-6][cardplace % 4]*2, config["game"]['height']*(0.9-(int(cardplace/2))*0.134), Player)
             self.shoe.shoe.pop(0)
 
