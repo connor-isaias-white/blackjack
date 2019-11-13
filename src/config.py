@@ -3,7 +3,7 @@ config = {
         'caption': 'BlackJack',
         'height': 800,
         'width': 1440,
-        'fps': 10
+        'fps': 20
     },
     "setup": {
         "players": 4
@@ -13,6 +13,8 @@ config = {
         'black': (0, 0, 0),
         'green': (0, 100, 0),
         'red': (100, 0, 0),
-        "blue": (0,0,100)
+        "blue": (0,0,100),
+        "gray": (100,100,100),
+        "dark gray":(30,30,30)
     }
 }
