@@ -26,7 +26,7 @@ class Game:
             if self.done == len(self.players):
                 self.roundend()
             elif self.players[self.turn % len(self.players)].state != "playing":
-                self.showcards(self.turn % len(self.players), config["colours"]["dark gray"])
+                #self.showcards(self.turn % len(self.players), config["colours"]["dark gray"])
                 self.turn +=1
             else:
                 self.showcards(self.turn % len(self.players), config["colours"]["white"])
@@ -53,6 +53,7 @@ class Game:
             self.players.append(Player)
 
     def roundSetup(self):
+        self.display.fill(config["colours"]["black"])
         self.turn = 0
         self.done = 0
         for i in range(len(self.players)*2):
@@ -82,7 +83,8 @@ class Game:
                     self.bust(Player)
             elif self.players[Player].hand.total == 21:
                 self.stand(Player)
-            self.showcards(Player, config["colours"]["gray"])
+            else:
+                self.showcards(Player, config["colours"]["gray"])
             self.shoe.shoe.pop(0)
 
 
