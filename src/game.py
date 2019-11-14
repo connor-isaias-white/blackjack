@@ -4,6 +4,7 @@ from src.deck import deck
 from src.player import player
 from random import randint
 from src.hand import hand
+from time import sleep
 
 class Game:
     def __init__(self, display):
@@ -14,6 +15,7 @@ class Game:
         self.turn = 0
         self.font = pygame.font.Font('assets/FiraCode.ttf', 42)
         self.players =[]
+        self.dealer = player(config["setup"]["players"]+1, True)
 
     def loop(self):
         self.shoe = deck(10)
@@ -24,12 +26,12 @@ class Game:
 
         while self.running:
             if self.done == len(self.players):
-                self.roundend()
+                self.dealerturn()
             elif self.players[self.turn % len(self.players)].state != "playing":
-                #self.showcards(self.turn % len(self.players), config["colours"]["dark gray"])
+                #self.showCards(self.turn % len(self.players), config["colours"]["dark gray"])
                 self.turn +=1
             else:
-                self.showcards(self.turn % len(self.players), config["colours"]["white"])
+                self.showCards(self.turn % len(self.players), config["colours"]["white"])
             self.events()
             pygame.display.update()
             clock.tick(config['game']['fps'])
@@ -49,7 +51,7 @@ class Game:
 
     def setupPlayers(self):
         for i in range(config["setup"]["players"]):
-            Player = player(i)
+            Player = player(i, False)
             self.players.append(Player)
 
     def roundSetup(self):
@@ -59,15 +61,20 @@ class Game:
         for i in range(len(self.players)*2):
             self.hit(i % len(self.players))
 
+        for i in range(2):
+            self.dealer.hand.addCard(self.shoe.shoe[0])
+            self.shoe.shoe.pop(0)
+        self.showDealercards(False)
+
 
     def stand(self, Player):
         self.players[Player].state = "stopped"
-        self.showcards(Player, config["colours"]["dark gray"])
+        self.showCards(Player, config["colours"]["dark gray"])
         self.done +=1
 
     def bust(self, Player):
         self.players[Player].state = "busted"
-        self.showcards(Player, config["colours"]["dark gray"])
+        self.showCards(Player, config["colours"]["dark gray"])
         self.done +=1
 
     def hit(self, Player):
@@ -79,31 +86,36 @@ class Game:
                     self.players[Player].hand.numaces -= 1
                     self.players[Player].hand.soft = False
                     self.players[Player].hand.total -= 10
+                    self.showCards(Player, config["colours"]["gray"])
                 else:
                     self.bust(Player)
             elif self.players[Player].hand.total == 21:
                 self.stand(Player)
             else:
-                self.showcards(Player, config["colours"]["gray"])
+                self.showCards(Player, config["colours"]["gray"])
             self.shoe.shoe.pop(0)
 
+    def dealerturn(self):
+        self.showDealercards(True)
+        self.roundend()
 
     def roundend(self):
+
         for i in self.players:
             print(i.hand.total)
             i.hand = hand()
             i.state = "playing"
+        self.dealer.hand = hand()
         self.roundSetup()
 
-    def showcards(self, Player,colour):
+    def showCards(self, Player,colour):
         size = 12
-
-        # cards
-        for i in range(len(self.players[Player].hand.cards)):
-            card = self.players[Player].hand.cards[i]
+        currplayer = self.players[Player]
+        cardstoshow= range(len(currplayer.hand.cards))
+        for i in cardstoshow:
             xshift = (Player+1)/(len(self.players)+1)*config["game"]['width']+5.2*[12,6,-6,0][i % 4]*2 -6*size
             yshift = config["game"]['height']*(0.9-(int((i+1)/2))*0.134)-6*size
-
+            card = currplayer.hand.cards[i]
             pygame.draw.polygon(self.display,colour,[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
             text = self.font.render(card.uni+card.apperance+card.uni, True,config["colours"][card.colour], colour)
             textRect = text.get_rect()
@@ -113,7 +125,34 @@ class Game:
         xshift = (Player+1)/(len(self.players)+1)*config["game"]['width']-6*size
         yshift = config["game"]['height']*(0.9)-6*size
         pygame.draw.polygon(self.display,colour,[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
-        text = self.font.render(str(self.players[Player].hand.total), True,config["colours"]["green"], colour)
+        text = self.font.render(str(currplayer.hand.total), True,config["colours"]["green"], colour)
         textRect = text.get_rect()
         textRect.center = (xshift+6*size, yshift+6*size)
         self.display.blit(text, textRect)
+
+    def showDealercards(self, playersdone):
+        size = 12
+        yshift= (config["game"]['width']/12)-6*size
+        if playersdone:
+            cardstoshow= range(len(self.dealer.hand.cards))
+            text = self.font.render(str(self.dealer.hand.total), True,config["colours"]["green"], config["colours"]["white"])
+        else:
+            cardstoshow= range(1)
+            text = self.font.render(str(self.dealer.hand.cards[0].value), True,config["colours"]["green"], config["colours"]["white"])
+            xshift = (config["game"]['width']/2)-6*size*2.5
+            pygame.draw.polygon(self.display,config["colours"]["white"],[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+        xshift = (config["game"]['width']/2)-6*size
+
+        pygame.draw.polygon(self.display,config["colours"]["white"],[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+        textRect = text.get_rect()
+        textRect.center = (xshift+6*size, yshift+6*size)
+        self.display.blit(text, textRect)
+
+        for i in cardstoshow:
+            card = self.dealer.hand.cards[i]
+            text = self.font.render(card.uni+card.apperance+card.uni, True,config["colours"][card.colour], config["colours"]["white"])
+            xshift = (config["game"]['width']/2)-6*size+((-1)**(i))*9*size*int((i+2)/2)
+            pygame.draw.polygon(self.display,config["colours"]["white"],[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+            textRect = text.get_rect()
+            textRect.center = (xshift+6*size, yshift+6*size)
+            self.display.blit(text, textRect)
