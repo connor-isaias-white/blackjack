@@ -32,6 +32,7 @@ class Game:
                 self.turn +=1
             else:
                 self.showCards(self.turn % len(self.players), config["colours"]["white"])
+                self.last = pygame.time.get_ticks()
             self.events()
             pygame.display.update()
             clock.tick(config['game']['fps'])
@@ -82,13 +83,7 @@ class Game:
             self.players[Player].hand.addCard(self.shoe.shoe[0])
             cardplace = self.players[Player].hand.numCards
             if  self.players[Player].hand.total > 21:
-                if self.players[Player].hand.numaces > 0:
-                    self.players[Player].hand.numaces -= 1
-                    self.players[Player].hand.soft = False
-                    self.players[Player].hand.total -= 10
-                    self.showCards(Player, config["colours"]["gray"])
-                else:
-                    self.bust(Player)
+                self.bust(Player)
             elif self.players[Player].hand.total == 21:
                 self.stand(Player)
             else:
@@ -97,12 +92,25 @@ class Game:
 
     def dealerturn(self):
         self.showDealercards(True)
-        self.roundend()
+        if self.wait(1000):
+            if self.dealer.hand.total > 16:
+                self.roundend()
+            else:
+                self.dealer.hand.addCard(self.shoe.shoe[0])
+                self.shoe.shoe.pop(0)
+                if self.wait(1000):
+                    self.showDealercards(True)
+
+    def wait(self, time):
+        now = pygame.time.get_ticks()
+        if now - self.last >= time:
+            self.last = now
+            return True
+        else:
+            return False
 
     def roundend(self):
-
         for i in self.players:
-            print(i.hand.total)
             i.hand = hand()
             i.state = "playing"
         self.dealer.hand = hand()
