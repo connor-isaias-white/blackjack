@@ -8,6 +8,7 @@ class deck:
     def __init__(self, numDecks):
         self.numDecks = numDecks
         self.shoe = []
+        self.cutCard = randint((numDecks*52)/2, numDecks*52)
         for num in range(numDecks):
             for suit in self.suits:
                 for cardname in self.cards:

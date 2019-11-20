@@ -21,7 +21,7 @@ class Game:
         self.realplayers = False
 
     def loop(self):
-        self.shoe = deck(10)
+        self.shoe = deck(20)
         self.shoe.shuffle()
         clock = pygame.time.Clock()
         self.setupPlayers()
@@ -58,7 +58,7 @@ class Game:
 
     def setupPlayers(self):
         for i in range(config["setup"]["players"]):
-            if i == 0:
+            if i == -1:
                 Player = player(i, False, False)
                 self.realplayers = True
             else:
@@ -69,6 +69,8 @@ class Game:
         self.display.fill(config["colours"]["black"])
         self.turn = 0
         self.done = 0
+        if len(self.shoe.shoe) < self.shoe.cutCard:
+            self.shoe.shoe = deck(20)
         for i in range(len(self.players)*2):
             self.hit(i % len(self.players))
 
@@ -151,8 +153,11 @@ class Game:
             elif i.hand.total == self.dealer.hand.total:
                 i.money += config["setup"]["buy in"]
             i.hand = hand()
-            i.state = "playing"
-            i.money -= config["setup"]["buy in"]
+            if i.money > 0:
+                i.state = "playing"
+                i.money -= config["setup"]["buy in"]
+            else:
+                i.state = "out"
         self.dealer.hand = hand()
         self.roundSetup()
 
