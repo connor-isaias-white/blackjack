@@ -8,7 +8,7 @@ class player:
     def __init__(self, pos, dealer, comp):
         self.isComp = comp
         if comp:
-            self.strat = self.strats[randint(0, 2)]
+            self.strat = self.strats[randint(0, 0)]
         if dealer:
             self.state = "idle"
         else:

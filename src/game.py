@@ -70,7 +70,8 @@ class Game:
         self.turn = 0
         self.done = 0
         if len(self.shoe.shoe) < self.shoe.cutCard:
-            self.shoe.shoe = deck(20)
+            self.shoe = deck(20)
+            self.shoe.shuffle()
         for i in range(len(self.players)*2):
             self.hit(i % len(self.players))
 
