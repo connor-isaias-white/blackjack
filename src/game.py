@@ -6,6 +6,7 @@ from random import randint
 from src.hand import hand
 from src.basic import basic
 from time import sleep
+from random import getrandbits
 
 class Game:
     def __init__(self, display):
@@ -17,6 +18,7 @@ class Game:
         self.font = pygame.font.Font('assets/FiraCode.ttf', 42)
         self.players =[]
         self.dealer = player(config["setup"]["players"]+1, True, True)
+        self.realplayers = False
 
     def loop(self):
         self.shoe = deck(10)
@@ -56,8 +58,9 @@ class Game:
 
     def setupPlayers(self):
         for i in range(config["setup"]["players"]):
-            if i = int(config["setup"]["players"])/2:
+            if i == 0:
                 Player = player(i, False, False)
+                self.realplayers = True
             else:
                 Player = player(i, False, True)
             self.players.append(Player)
@@ -98,8 +101,24 @@ class Game:
             self.shoe.shoe.pop(0)
 
     def compmove(self, Player):
+        if self.players[Player].strat == "basic":
+            if basic[str(self.players[Player].hand.total)][self.dealer.hand.cards[0].value] == 'h':
+                self.hit(Player)
+            else:
+                self.stand(Player)
+        elif self.players[Player].strat == "standat17":
+            if self.players[Player].hand.total <17:
+                self.hit(Player)
+            else:
+                self.stand(Player)
+        elif self.players[Player].strat == "drunk":
+            move = getrandbits(1)
+            if move:
+                self.hit(Player)
+            else:
+                self.stand(Player)
 
-        print(Player)
+
 
     def dealerturn(self):
         self.showDealercards(True)
@@ -113,12 +132,15 @@ class Game:
                     self.showDealercards(True)
 
     def wait(self, time):
-        now = pygame.time.get_ticks()
-        if now - self.last >= time:
-            self.last = now
-            return True
+        if self.realplayers:
+            now = pygame.time.get_ticks()
+            if now - self.last >= time:
+                self.last = now
+                return True
+            else:
+                return False
         else:
-            return False
+            return True
 
     def roundend(self):
         for i in self.players:
