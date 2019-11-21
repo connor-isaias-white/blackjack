@@ -8,7 +8,8 @@ config = {
     "setup": {
         "players": 4,
         "buy in": 100,
-        "start money": 9900
+        "start money": 9900,
+        "comps only": False
     },
     'colours': {
         'white': (255, 255, 255),

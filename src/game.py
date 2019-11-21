@@ -55,10 +55,13 @@ class Game:
                     elif event.key == pygame.K_s:
                         self.stand(self.turn % len(self.players))
                         self.turn +=1
+                    elif event.key == pygame.K_d:
+                        self.doubleDown(self.turn % len(self.players))
+                        self.turn +=1
 
     def setupPlayers(self):
         for i in range(config["setup"]["players"]):
-            if i == -1:
+            if i == 0 and not config["setup"]["comps only"]:
                 Player = player(i, False, False)
                 self.realplayers = True
             else:
@@ -73,7 +76,13 @@ class Game:
             self.shoe = deck(20)
             self.shoe.shuffle()
         for i in range(len(self.players)*2):
-            self.hit(i % len(self.players))
+            if self.players[i % len(self.players)].state != "out":
+                self.hit(i % len(self.players))
+            else:
+                self.done += 0.5
+        if self.done == config["setup"]["players"]:
+            self.players = []
+            self.setupPlayers()
 
         for i in range(2):
             self.dealer.hand.addCard(self.shoe.shoe[0])
@@ -91,6 +100,13 @@ class Game:
         self.showCards(Player, config["colours"]["dark gray"])
         self.done +=1
 
+    def doubleDown(self, Player):
+        self.players[Player].state = "doubled"
+        self.players[Player].money -= config["setup"]["buy in"]
+        self.hit(Player)
+        self.showCards(Player, config["colours"]["dark gray"])
+        self.done +=1
+
     def hit(self, Player):
         if (self.players[Player].hand.total < 21):
             self.players[Player].hand.addCard(self.shoe.shoe[0])
@@ -105,7 +121,11 @@ class Game:
 
     def compmove(self, Player):
         if self.players[Player].strat == "basic":
-            if basic[str(self.players[Player].hand.total)][self.dealer.hand.cards[0].value] == 'h':
+            if self.players[Player].hand.numaces > 0:
+                ace = "ace"
+            else:
+                ace = "noAce"
+            if basic[ace][str(self.players[Player].hand.total)][self.dealer.hand.cards[0].value] == 'h':
                 self.hit(Player)
             else:
                 self.stand(Player)
@@ -147,13 +167,19 @@ class Game:
 
     def roundend(self):
         for i in self.players:
-            if i.hand.total == 21 and i.hand.numCards==2:
+            if i.state == "doubled":
+                multiplyer = 2
+            else:
+                multiplyer = 1
+
+            if i.hand.total == 21 and i.hand.numCards==2 and not (self.dealer.hand.total == 21 and self.dealer.hand.numCards ==2):
                 i.money += int(config["setup"]["buy in"]*(3/2))
             elif i.hand.total > self.dealer.hand.total and i.hand.total <= 21:
-                i.money += config["setup"]["buy in"]*2
+                i.money += config["setup"]["buy in"]*2*multiplyer
             elif i.hand.total == self.dealer.hand.total:
-                i.money += config["setup"]["buy in"]
+                i.money += config["setup"]["buy in"]*multiplyer
             i.hand = hand()
+
             if i.money > 0:
                 i.state = "playing"
                 i.money -= config["setup"]["buy in"]
