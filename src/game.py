@@ -108,7 +108,6 @@ class Game:
         # print(f"played cards: {len(self.playedCards)}")
         # print(f"cut card: {self.shoe.cutCard}")
         # print(f"running: {self.runningCount}")
-
     def stand(self, Player):
         self.players[Player].state = "stopped"
         self.showCards(Player, config["colours"]["dark gray"])
