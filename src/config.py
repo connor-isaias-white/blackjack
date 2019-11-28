@@ -9,7 +9,9 @@ config = {
         "players": 4,
         "buy in": 100,
         "start money": 9900,
-        "comps only": False
+        "comps only": True,
+        "numOfDecks": 10
+
     },
     'colours': {
         'white': (255, 255, 255),

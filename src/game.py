@@ -15,13 +15,18 @@ class Game:
         self.running = True
         self.done = 0
         self.turn = 0
-        self.font = pygame.font.Font('assets/FiraCode.ttf', 42)
+        self.font = pygame.font.Font('assets/FiraCode.ttf', 40)
         self.players =[]
         self.dealer = player(config["setup"]["players"]+1, True, True)
-        self.realplayers = False
+        self.last= pygame.time.get_ticks()
+
+        #counting
+        self.runningCount = 0
+        self.trueCount = 0
+        self.playedCards = []
 
     def loop(self):
-        self.shoe = deck(20)
+        self.shoe = deck(config['setup']['numOfDecks'])
         self.shoe.shuffle()
         clock = pygame.time.Clock()
         self.setupPlayers()
@@ -63,7 +68,6 @@ class Game:
         for i in range(config["setup"]["players"]):
             if i == 0 and not config["setup"]["comps only"]:
                 Player = player(i, False, False)
-                self.realplayers = True
             else:
                 Player = player(i, False, True)
             self.players.append(Player)
@@ -72,9 +76,12 @@ class Game:
         self.display.fill(config["colours"]["black"])
         self.turn = 0
         self.done = 0
-        if len(self.shoe.shoe) < self.shoe.cutCard:
-            self.shoe = deck(20)
+        if len(self.playedCards) > self.shoe.cutCard:
+            self.playedCards = []
+            self.shoe = deck(config['setup']['numOfDecks'])
             self.shoe.shuffle()
+            self.runningCount = 0
+            self.trueCount =0
         for i in range(len(self.players)*2):
             if self.players[i % len(self.players)].state != "out":
                 self.hit(i % len(self.players))
@@ -86,9 +93,21 @@ class Game:
 
         for i in range(2):
             self.dealer.hand.addCard(self.shoe.shoe[0])
+            self.updateCount(self.shoe.shoe[0])
             self.shoe.shoe.pop(0)
         self.showDealercards(False)
 
+    def updateCount(self, card):
+        if card.value > 9:
+            self.runningCount -= 1
+        elif card.value < 7:
+            self.runningCount += 1
+        self.playedCards.append(card)
+        self.trueCount =  self.runningCount/(int(config['setup']['numOfDecks']-len(self.playedCards)/52)+1)
+        # print(f"remaining decks: {int(config['setup']['numOfDecks']-len(self.playedCards)/52)+1}")
+        # print(f"played cards: {len(self.playedCards)}")
+        # print(f"cut card: {self.shoe.cutCard}")
+        # print(f"running: {self.runningCount}")
 
     def stand(self, Player):
         self.players[Player].state = "stopped"
@@ -117,6 +136,7 @@ class Game:
                 self.stand(Player)
             else:
                 self.showCards(Player, config["colours"]["gray"])
+            self.updateCount(self.shoe.shoe[0])
             self.shoe.shoe.pop(0)
 
     def compmove(self, Player):
@@ -141,8 +161,6 @@ class Game:
             else:
                 self.stand(Player)
 
-
-
     def dealerturn(self):
         self.showDealercards(True)
         if self.wait(800):
@@ -150,12 +168,13 @@ class Game:
                 self.roundend()
             else:
                 self.dealer.hand.addCard(self.shoe.shoe[0])
+                self.updateCount(self.shoe.shoe[0])
                 self.shoe.shoe.pop(0)
                 if self.wait(800):
                     self.showDealercards(True)
 
     def wait(self, time):
-        if self.realplayers:
+        if not config["setup"]["comps only"]:
             now = pygame.time.get_ticks()
             if now - self.last >= time:
                 self.last = now
