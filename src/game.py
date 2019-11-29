@@ -3,61 +3,266 @@ from src.config import config
 from src.deck import deck
 from src.player import player
 from random import randint
+from src.hand import hand
+from src.basic import basic
+from time import sleep
+from random import getrandbits
 
 class Game:
-    def __init__(self, display):
+    def __init__(self, display, strat, dealerstand):
         pygame.init()
         self.display = display
+        self.strat =strat
+        self.dealerstand = dealerstand
         self.running = True
-        self.font = pygame.font.Font('assets/FiraCode.ttf', 42)
-        self.players =[]
+        self.done = 0
         self.turn = 0
+        self.font = pygame.font.Font('assets/FiraCode.ttf', 40)
+        self.players =[]
+        self.dealer = player(config["setup"]["players"]+1, True, True, self.strat)
+        self.last= pygame.time.get_ticks()
+
+        #counting
+        self.runningCount = 0
+        self.trueCount = 0
+        self.playedCards = []
 
     def loop(self):
-        shoe = deck(5)
-        shoe.shuffle()
+        self.shoe = deck(config['setup']['numOfDecks'])
+        self.shoe.shuffle()
         clock = pygame.time.Clock()
         self.setupPlayers()
+        self.roundSetup()
 
-        self.deal(shoe)
         while self.running:
-            self.events(shoe)
+            if self.done == len(self.players):
+                self.dealerturn()
+            elif self.players[self.turn % len(self.players)].state != "playing":
+                self.turn +=1
+            elif self.players[self.turn % len(self.players)].isComp:
+                self.compmove(self.turn % len(self.players))
+                self.turn +=1
+            else:
+                self.showCards(self.turn % len(self.players), config["colours"]["white"])
+                self.last = pygame.time.get_ticks()
+            self.events()
             pygame.display.update()
             clock.tick(config['game']['fps'])
 
-    def events(self, shoe):
+    def events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
                 exit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_h:
-                    self.hit(self.turn % len(self.players), shoe)
-                    self.turn +=1
+                if self.players[self.turn % len(self.players)].isComp == False:
+                    if event.key == pygame.K_h:
+                        self.hit(self.turn % len(self.players))
+                        self.turn +=1
+                    elif event.key == pygame.K_s:
+                        self.stand(self.turn % len(self.players))
+                        self.turn +=1
+                    elif event.key == pygame.K_d:
+                        self.doubleDown(self.turn % len(self.players))
+                        self.turn +=1
 
     def setupPlayers(self):
         for i in range(config["setup"]["players"]):
-            Player = player(i)
+            if i == 0 and not config["setup"]["comps only"]:
+                Player = player(i, False, False, self.strat)
+            else:
+                Player = player(i, False, True, self.strat)
             self.players.append(Player)
 
-    def hit(self, Player,shoe):
-        self.players[Player].hand.addCard(shoe.shoe[0])
-        cardplace = self.players[Player].hand.numCards
-        self.showcard(shoe.shoe[0], (Player+1)/(len(self.players)+1)*config["game"]['width']+5.2*[0,12,6,-6][cardplace % 4]*2, config["game"]['height']*(0.9-(int(cardplace/2))*0.134))
-        shoe.shoe.pop(0)
-
-    def deal(self, shoe):
+    def roundSetup(self):
+        self.display.fill(config["colours"]["black"])
+        self.turn = 0
+        self.done = 0
+        if len(self.playedCards) > self.shoe.cutCard:
+            self.playedCards = []
+            self.shoe = deck(config['setup']['numOfDecks'])
+            self.shoe.shuffle()
+            self.runningCount = 0
+            self.trueCount =0
         for i in range(len(self.players)*2):
-            self.players[i % len(self.players)].hand.addCard(shoe.shoe[0])
-            self.showcard(shoe.shoe[0], ((i % len(self.players))+1)/(len(self.players)+1)*config["game"]['width']+5.2*12*(int(i/(len(self.players)))), config["game"]['height']*(0.9-(int(i/(len(self.players))))*0.134))
-            shoe.shoe.pop(0)
+            if self.players[i % len(self.players)].state != "out":
+                self.hit(i % len(self.players))
+            else:
+                self.done += 0.5
+        if self.done == config["setup"]["players"]:
+            self.players = []
+            self.setupPlayers()
 
-    def showcard(self, card, xshift, yshift):
+        for i in range(2):
+            self.dealer.hand.addCard(self.shoe.shoe[0])
+            self.updateCount(self.shoe.shoe[0])
+            self.shoe.shoe.pop(0)
+        self.showDealercards(False)
+
+    def updateCount(self, card):
+        if card.value > 9:
+            self.runningCount -= 1
+        elif card.value < 7:
+            self.runningCount += 1
+        self.playedCards.append(card)
+        self.trueCount =  self.runningCount/(int(config['setup']['numOfDecks']-len(self.playedCards)/52)+1)
+        # print(f"remaining decks: {int(config['setup']['numOfDecks']-len(self.playedCards)/52)+1}")
+        # print(f"played cards: {len(self.playedCards)}")
+        # print(f"cut card: {self.shoe.cutCard}")
+        # print(f"running: {self.runningCount}")
+    def stand(self, Player):
+        self.players[Player].state = "stopped"
+        self.showCards(Player, config["colours"]["dark gray"])
+        self.done +=1
+
+    def bust(self, Player):
+        self.players[Player].state = "busted"
+        self.showCards(Player, config["colours"]["dark gray"])
+        self.done +=1
+
+    def doubleDown(self, Player):
+        self.players[Player].state = "doubled"
+        self.players[Player].money -= config["setup"]["buy in"]
+        self.hit(Player)
+        self.showCards(Player, config["colours"]["dark gray"])
+        self.done +=1
+
+    def hit(self, Player):
+        if (self.players[Player].hand.total < 21):
+            self.players[Player].hand.addCard(self.shoe.shoe[0])
+            cardplace = self.players[Player].hand.numCards
+            if  self.players[Player].hand.total > 21:
+                self.bust(Player)
+            elif self.players[Player].hand.total == 21:
+                self.stand(Player)
+            else:
+                self.showCards(Player, config["colours"]["gray"])
+            self.updateCount(self.shoe.shoe[0])
+            self.shoe.shoe.pop(0)
+
+    def compmove(self, Player):
+        if self.players[Player].strat == "basic":
+            if self.players[Player].hand.numaces > 0:
+                ace = "ace"
+            else:
+                ace = "noAce"
+            if basic[ace][str(self.players[Player].hand.total)][self.dealer.hand.cards[0].value] == 'h':
+                self.hit(Player)
+            else:
+                self.stand(Player)
+        elif self.players[Player].strat == "standat17":
+            if self.players[Player].hand.total <17:
+                self.hit(Player)
+            else:
+                self.stand(Player)
+        elif self.players[Player].strat == "rand":
+            move = getrandbits(1)
+            if move:
+                self.hit(Player)
+            else:
+                self.stand(Player)
+
+    def dealerturn(self):
+        self.showDealercards(True)
+        if self.wait(800):
+            if self.dealer.hand.total > (self.dealerstand-1):
+                self.roundend()
+            else:
+                self.dealer.hand.addCard(self.shoe.shoe[0])
+                self.updateCount(self.shoe.shoe[0])
+                self.shoe.shoe.pop(0)
+                if self.wait(800):
+                    self.showDealercards(True)
+
+    def wait(self, time):
+        if not config["setup"]["comps only"]:
+            now = pygame.time.get_ticks()
+            if now - self.last >= time:
+                self.last = now
+                return True
+            else:
+                return False
+        else:
+            return True
+
+    def roundend(self):
+        for i in self.players:
+            if i.state == "doubled":
+                multiplyer = 2
+            else:
+                multiplyer = 1
+
+            if i.hand.total == 21 and i.hand.numCards==2 and not (self.dealer.hand.total == 21 and self.dealer.hand.numCards ==2):
+                i.money += int(config["setup"]["buy in"]*(3/2))
+            elif i.hand.total > self.dealer.hand.total and i.hand.total <= 21:
+                i.money += config["setup"]["buy in"]*2*multiplyer
+            elif i.hand.total == self.dealer.hand.total:
+                i.money += config["setup"]["buy in"]*multiplyer
+            i.hand = hand()
+
+            if i.money > 0:
+                i.state = "playing"
+                i.money -= config["setup"]["buy in"]
+            else:
+                i.state = "out"
+        self.dealer.hand = hand()
+        self.roundSetup()
+
+    def showCards(self, Player,colour):
         size = 12
-        xshift = xshift-6*size
-        yshift = yshift-6*size
-        pygame.draw.polygon(self.display,config["colours"]["white"],[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
-        text = self.font.render(card.uni+card.apperance+card.uni, True,config["colours"][card.colour], config["colours"]["white"])
+        currplayer = self.players[Player]
+        cardstoshow= range(len(currplayer.hand.cards))
+        for i in cardstoshow:
+            xshift = (Player+1)/(len(self.players)+1)*config["game"]['width']+5.2*[12,6,-6,0][i % 4]*2 -6*size
+            yshift = config["game"]['height']*(0.765-(int((i+1)/2))*0.134)-6*size
+            card = currplayer.hand.cards[i]
+            pygame.draw.polygon(self.display,colour,[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+            text = self.font.render(card.uni+card.apperance+card.uni, True,config["colours"][card.colour], colour)
+            textRect = text.get_rect()
+            textRect.center = (xshift+6*size, yshift+6*size)
+            self.display.blit(text, textRect)
+        #total
+        xshift = (Player+1)/(len(self.players)+1)*config["game"]['width']-6*size
+        yshift = config["game"]['height']*(0.765)-6*size
+        pygame.draw.polygon(self.display,colour,[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+        text = self.font.render(str(currplayer.hand.total), True,config["colours"]["green"], colour)
         textRect = text.get_rect()
         textRect.center = (xshift+6*size, yshift+6*size)
         self.display.blit(text, textRect)
+
+        #money
+        xshift = (Player+1)/(len(self.players)+1)*config["game"]['width']-0.8*size
+        yshift = config["game"]['height']*(0.9)-6*size
+        pygame.draw.polygon(self.display,colour,[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+        text = self.font.render("$"+str(currplayer.money), True,config["colours"]["light green"], colour)
+        textRect = text.get_rect()
+        textRect.center = (xshift+6*size, yshift+6*size)
+        self.display.blit(text, textRect)
+
+
+    def showDealercards(self, playersdone):
+        size = 12
+        yshift= (config["game"]['width']/12)-6*size
+        if playersdone:
+            cardstoshow= range(len(self.dealer.hand.cards))
+            text = self.font.render(str(self.dealer.hand.total), True,config["colours"]["green"], config["colours"]["white"])
+        else:
+            cardstoshow= range(1)
+            text = self.font.render(str(self.dealer.hand.cards[0].value), True,config["colours"]["green"], config["colours"]["white"])
+            xshift = (config["game"]['width']/2)-6*size*2.5
+            pygame.draw.polygon(self.display,config["colours"]["white"],[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+        xshift = (config["game"]['width']/2)-6*size
+
+        pygame.draw.polygon(self.display,config["colours"]["white"],[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+        textRect = text.get_rect()
+        textRect.center = (xshift+6*size, yshift+6*size)
+        self.display.blit(text, textRect)
+
+        for i in cardstoshow:
+            card = self.dealer.hand.cards[i]
+            text = self.font.render(card.uni+card.apperance+card.uni, True,config["colours"][card.colour], config["colours"]["white"])
+            xshift = (config["game"]['width']/2)-6*size+((-1)**(i))*9*size*int((i+2)/2)
+            pygame.draw.polygon(self.display,config["colours"]["white"],[(0.803847577*size+xshift,3*size+yshift),(0.803847577*size+xshift,9*size+yshift),(6*size+xshift,12*size+yshift),(11.196152423*size+xshift, 9*size+yshift),(11.196152423*size+xshift,3*size+yshift),(6*size+xshift,0*size+yshift)])
+            textRect = text.get_rect()
+            textRect.center = (xshift+6*size, yshift+6*size)
+            self.display.blit(text, textRect)
