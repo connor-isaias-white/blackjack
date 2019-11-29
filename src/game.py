@@ -9,15 +9,17 @@ from time import sleep
 from random import getrandbits
 
 class Game:
-    def __init__(self, display):
+    def __init__(self, display, strat, dealerstand):
         pygame.init()
         self.display = display
+        self.strat =strat
+        self.dealerstand = dealerstand
         self.running = True
         self.done = 0
         self.turn = 0
         self.font = pygame.font.Font('assets/FiraCode.ttf', 40)
         self.players =[]
-        self.dealer = player(config["setup"]["players"]+1, True, True)
+        self.dealer = player(config["setup"]["players"]+1, True, True, self.strat)
         self.last= pygame.time.get_ticks()
 
         #counting
@@ -67,9 +69,9 @@ class Game:
     def setupPlayers(self):
         for i in range(config["setup"]["players"]):
             if i == 0 and not config["setup"]["comps only"]:
-                Player = player(i, False, False)
+                Player = player(i, False, False, self.strat)
             else:
-                Player = player(i, False, True)
+                Player = player(i, False, True, self.strat)
             self.players.append(Player)
 
     def roundSetup(self):
@@ -153,7 +155,7 @@ class Game:
                 self.hit(Player)
             else:
                 self.stand(Player)
-        elif self.players[Player].strat == "drunk":
+        elif self.players[Player].strat == "rand":
             move = getrandbits(1)
             if move:
                 self.hit(Player)
@@ -163,7 +165,7 @@ class Game:
     def dealerturn(self):
         self.showDealercards(True)
         if self.wait(800):
-            if self.dealer.hand.total > 16:
+            if self.dealer.hand.total > (self.dealerstand-1):
                 self.roundend()
             else:
                 self.dealer.hand.addCard(self.shoe.shoe[0])

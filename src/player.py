@@ -3,12 +3,14 @@ from src.config import config
 from random import randint
 
 class player:
-    strats = ["basic", "standat17", "drunk"]
+    strats = ["basic", "standat17", "rand"]
 
-    def __init__(self, pos, dealer, comp):
+    def __init__(self, pos, dealer, comp, strat):
         self.isComp = comp
         if comp:
-            self.strat = self.strats[randint(0, 2)]
+            self.strat = strat
+            if self.strat == "any":
+                self.strat = self.strats[randint(0, 2)]
         if dealer:
             self.state = "idle"
         else:

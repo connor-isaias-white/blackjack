@@ -9,7 +9,7 @@ config = {
         "players": 4,
         "buy in": 100,
         "start money": 9900,
-        "comps only": True,
+        "comps only": False,
         "numOfDecks": 10
 
     },
