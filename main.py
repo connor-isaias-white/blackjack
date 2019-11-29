@@ -4,6 +4,7 @@ from src.game import Game
 from src.config import config
 
 def main():
+    print("Controls: h to hit, s to stand, d to double down")
     try:
         dealerstand = int(input("When should the dealer stand? e.g 17: "))
     except Exception:
