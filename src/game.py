@@ -2,11 +2,10 @@ import pygame
 from src.config import config
 from src.deck import deck
 from src.player import player
-from random import randint
+from random import randint, getrandbits
 from src.hand import hand
 from src.basic import basic
 from time import sleep
-from random import getrandbits
 
 class Game:
     def __init__(self, display, strat, dealerstand):
